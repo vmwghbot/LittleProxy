@@ -3,7 +3,7 @@
   <groupId>org.littleshoot</groupId>
   <artifactId>littleproxy</artifactId>
   <packaging>jar</packaging>
-  <version>1.1.0-beta1-SNAPSHOT</version>
+  <version>1.1.0-beta1-20150609</version>
   <name>LittleProxy</name>
   <description>
     LittleProxy is a high performance HTTP proxy written in Java and using the Netty networking framework. 
@@ -196,7 +196,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.0.23.Final</version>
+      <version>4.0.24.Final</version>
       <scope>compile</scope>
     </dependency>
 

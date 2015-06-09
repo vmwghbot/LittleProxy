@@ -1,5 +1,7 @@
 package org.littleshoot.proxy;
 
+import io.netty.channel.ChannelHandlerContext;
+
 import java.net.InetSocketAddress;
 
 import javax.net.ssl.SSLEngine;
@@ -16,13 +18,24 @@ import org.littleshoot.proxy.impl.ClientToProxyConnection;
 public class FlowContext {
     private final InetSocketAddress clientAddress;
     private final SSLSession clientSslSession;
+    private final ChannelHandlerContext ctx;
 
     public FlowContext(ClientToProxyConnection clientConnection) {
         super();
+        this.ctx = clientConnection.getContext();
         this.clientAddress = clientConnection.getClientAddress();
         SSLEngine sslEngine = clientConnection.getSslEngine();
         this.clientSslSession = sslEngine != null ? sslEngine.getSession()
                 : null;
+    }
+
+    /**
+     * The client to proxy channel context.
+     *
+     * @return
+     */
+    public ChannelHandlerContext getClientToProxyContext() {
+        return ctx;
     }
 
     /**

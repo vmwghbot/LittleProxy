@@ -7,6 +7,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObject;
@@ -20,6 +21,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.littleshoot.proxy.ActivityTracker;
@@ -30,6 +32,7 @@ import org.littleshoot.proxy.ProxyAuthenticator;
 import org.littleshoot.proxy.SslEngineSource;
 
 import javax.net.ssl.SSLSession;
+
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -167,8 +170,6 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
     @Override
     protected ConnectionState readHTTPInitial(HttpRequest httpRequest) {
-        LOG.debug("Got request: {}", httpRequest);
-
         boolean authenticationRequired = authenticationRequired(httpRequest);
 
         if (authenticationRequired) {
@@ -200,6 +201,11 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     private ConnectionState doReadHTTPInitial(HttpRequest httpRequest) {
         // Make a copy of the original request
         HttpRequest originalRequest = copy(httpRequest);
+        if(originalRequest instanceof FullHttpRequest) {
+            originalRequest.headers().set(httpRequest.headers());
+        }
+
+        LOG.debug("Got request: {}", originalRequest);
 
         // Set up our filters based on the original request
         currentFilters = proxyServer.getFiltersSource().filterRequest(
@@ -896,8 +902,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * @return
      */
     private HttpRequest copy(HttpRequest original) {
-        if (original instanceof DefaultFullHttpRequest) {
-            ByteBuf content = ((DefaultFullHttpRequest) original).content();
+        if (original instanceof FullHttpRequest) {
+            ByteBuf content = ((FullHttpRequest) original).content();
             return new DefaultFullHttpRequest(original.getProtocolVersion(),
                     original.getMethod(), original.getUri(), content);
         } else {
