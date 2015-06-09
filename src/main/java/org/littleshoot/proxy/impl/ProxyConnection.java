@@ -836,4 +836,8 @@ abstract class ProxyConnection<I extends HttpObject> extends
         protected abstract void responseWritten(HttpResponse httpResponse);
     }
 
+    public ChannelHandlerContext getContext() {
+        return ctx;
+    }
+
 }

@@ -35,6 +35,7 @@ import org.littleshoot.proxy.SslEngineSource;
 
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -181,8 +182,6 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
     @Override
     protected ConnectionState readHTTPInitial(HttpRequest httpRequest) {
-        LOG.debug("Got request: {}", httpRequest);
-
         boolean authenticationRequired = authenticationRequired(httpRequest);
 
         if (authenticationRequired) {
@@ -213,7 +212,12 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private ConnectionState doReadHTTPInitial(HttpRequest httpRequest) {
         // Make a copy of the original request
-        this.currentRequest = copy(httpRequest);
+        HttpRequest originalRequest = copy(httpRequest);
+        if(originalRequest instanceof FullHttpRequest) {
+            originalRequest.headers().set(httpRequest.headers());
+        }
+
+        LOG.debug("Got request: {}", originalRequest);
 
         // Set up our filters based on the original request. If the HttpFiltersSource returns null (meaning the request/response
         // should not be filtered), fall back to the default no-op filter source.
@@ -749,11 +753,11 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     /**
      * Initialize the {@link ChannelPipeline} for the client to proxy channel.
      * LittleProxy acts like a server here.
-     * 
+     *
      * A {@link ChannelPipeline} invokes the read (Inbound) handlers in
      * ascending ordering of the list and then the write (Outbound) handlers in
      * descending ordering.
-     * 
+     *
      * Regarding the Javadoc of {@link HttpObjectAggregator} it's needed to have
      * the {@link HttpResponseEncoder} or {@link HttpRequestEncoder} before the
      * {@link HttpObjectAggregator} in the {@link ChannelPipeline}.
@@ -965,10 +969,10 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                 HttpHeaders.Names.PROXY_AUTHORIZATION);
         String fullValue = values.iterator().next();
         String value = StringUtils.substringAfter(fullValue, "Basic ").trim();
-        
+
         byte[] decodedValue = Base64.decodeBase64(value.getBytes(Charset.forName("UTF-8")));
         String decodedString = new String(decodedValue, Charset.forName("UTF-8"));
-        
+
         String userName = StringUtils.substringBefore(decodedString, ":");
         String password = StringUtils.substringAfter(decodedString, ":");
         if (!authenticator.authenticate(userName, password)) {
