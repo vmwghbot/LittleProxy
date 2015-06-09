@@ -34,6 +34,7 @@ import org.littleshoot.proxy.SslEngineSource;
 
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -227,7 +228,12 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private ConnectionState doReadHTTPInitial(HttpRequest httpRequest) {
         // Make a copy of the original request
-        this.currentRequest = copy(httpRequest);
+        HttpRequest originalRequest = copy(httpRequest);
+        if(originalRequest instanceof FullHttpRequest) {
+            originalRequest.headers().set(httpRequest.headers());
+        }
+
+        LOG.debug("Got request: {}", originalRequest);
 
         // Set up our filters based on the original request. If the HttpFiltersSource returns null (meaning the request/response
         // should not be filtered), fall back to the default no-op filter source.
