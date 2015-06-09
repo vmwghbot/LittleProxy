@@ -53,6 +53,18 @@ class ConnectionFlow {
         return this;
     }
 
+   /**
+     * Indicates whether the given message is relevant to the current step.
+     * Invoker should check this before calling read().
+     *
+     * @param msg
+     *            the message read from the underlying connection
+     * @return
+     */
+    boolean isRelevant(Object msg) {
+        return currentStep.isRelevant(msg);
+    }
+
     /**
      * While we're in the process of connecting, any messages read by the
      * {@link ProxyToServerConnection} are passed to this method, which passes
@@ -117,6 +129,7 @@ class ConnectionFlow {
         suppressInitialRequest = suppressInitialRequest
                 || currentStep.shouldSuppressInitialRequest();
 
+
         if (currentStep.shouldExecuteOnEventLoop()) {
             connection.ctx.executor().submit(new Runnable() {
                 @Override
@@ -127,6 +140,7 @@ class ConnectionFlow {
         } else {
             doProcessCurrentStep(LOG);
         }
+
     }
 
     /**

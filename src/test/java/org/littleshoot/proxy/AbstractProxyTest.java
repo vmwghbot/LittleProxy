@@ -321,6 +321,9 @@ public abstract class AbstractProxyTest {
         if (isHTTPS && !isChained()) {
             numberOfExpectedServerInteractions -= 1;
         }
+        if(isChainedNTLM()) {
+             numberOfExpectedServerInteractions += 1;
+        }
         assertThat(bytesReceivedFromClient.get(), greaterThan(0));
         assertEquals(numberOfExpectedClientInteractions,
                 requestsReceivedFromClient.get());
@@ -350,6 +353,10 @@ public abstract class AbstractProxyTest {
     }
 
     protected boolean isMITM() {
+        return false;
+    }
+
+    protected boolean isChainedNTLM() {
         return false;
     }
 
