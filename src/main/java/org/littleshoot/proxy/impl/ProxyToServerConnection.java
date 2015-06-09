@@ -1,5 +1,7 @@
 package org.littleshoot.proxy.impl;
 
+import static io.netty.handler.codec.http.HttpHeaders.Names.PROXY_AUTHENTICATE;
+import static io.netty.handler.codec.http.HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED;
 import com.google.common.net.HostAndPort;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ChannelFactory;
@@ -13,7 +15,10 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.channel.udt.nio.NioUdtProvider;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObject;
@@ -26,6 +31,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -38,13 +44,17 @@ import org.littleshoot.proxy.HttpFilters;
 import org.littleshoot.proxy.MitmManager;
 import org.littleshoot.proxy.TransportProtocol;
 import org.littleshoot.proxy.UnknownTransportProtocolException;
+import org.littleshoot.proxy.ntlm.NtlmException;
+import org.slf4j.spi.LocationAwareLogger;
 
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -55,6 +65,8 @@ import static org.littleshoot.proxy.impl.ConnectionState.AWAITING_INITIAL;
 import static org.littleshoot.proxy.impl.ConnectionState.CONNECTING;
 import static org.littleshoot.proxy.impl.ConnectionState.DISCONNECTED;
 import static org.littleshoot.proxy.impl.ConnectionState.HANDSHAKING;
+import static org.littleshoot.proxy.impl.ConnectionState.NTLM_HANDSHAKING;
+
 
 /**
  * <p>
@@ -209,6 +221,13 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
 
     @Override
     protected void read(Object msg) {
+        enableNtlmIfRequired(msg);
+
+        if (isConnecting() && !connectionFlow.isRelevant(msg)) {
+            LOG.debug("Aborting the current step in the connection flow.");
+            connectionFlow.advance();
+        }
+
         if (isConnecting()) {
             LOG.debug(
                     "In the middle of connecting, forwarding message to connection flow: {}",
@@ -217,6 +236,29 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         } else {
             super.read(msg);
         }
+    }
+
+    private void enableNtlmIfRequired(Object msg) {
+        if (msg instanceof HttpResponse && isNtlmRequired((HttpResponse) msg)) {
+            LOG.debug("NTLM authentication required. Failing the current connection.");
+            connectionFlow.fail(new NtlmException());
+        }
+    }
+
+    private static boolean isNtlmRequired(HttpResponse httpResponse) {
+        if (httpResponse.getStatus().equals(PROXY_AUTHENTICATION_REQUIRED)) {
+            List<String> schemes = httpResponse.headers().getAll(PROXY_AUTHENTICATE);
+            return schemes.contains("NTLM");
+        }
+        return false;
+    }
+
+    private static boolean isNtlmChallenge(HttpResponse httpResponse) {
+        if (httpResponse.getStatus().equals(PROXY_AUTHENTICATION_REQUIRED)) {
+            String scheme = httpResponse.headers().get(PROXY_AUTHENTICATE);
+            return scheme.startsWith("NTLM ");
+        }
+        return false;
     }
 
     @Override
@@ -280,7 +322,7 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             }
 
             // The current HTTP Request can be null when this proxy is
-            // negotiating a CONNECT request with a chained proxy 
+            // negotiating a CONNECT request with a chained proxy
             // while it is running as a MITM. Since the response to a
             // CONNECT request does not have any content, we return true.
             if(currentHttpRequest == null) {
@@ -566,13 +608,17 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
                     .newSslEngine()));
         }
 
+        if (chainedProxy != null && chainedProxy.getNtlmHandler() != null) {
+            connectionFlow.then(serverConnection.NtlmWithChainedProxy);
+        }
+
         if (ProxyUtils.isCONNECT(initialRequest)) {
             // If we're chaining, forward the CONNECT request
             if (hasUpstreamChainedProxy()) {
                 connectionFlow.then(
                         serverConnection.HTTPCONNECTWithChainedProxy);
-            }        	
-        	
+            }
+
             MitmManager mitmManager = proxyServer.getMitmManager();
             boolean isMitmEnabled = mitmManager != null;
 
@@ -657,9 +703,22 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
      */
     private ConnectionFlowStep HTTPCONNECTWithChainedProxy = new ConnectionFlowStep(
             this, AWAITING_CONNECT_OK) {
+
+        private boolean shouldWrite;
+
+        boolean shouldExecuteOnEventLoop() {
+            shouldWrite = ntlmAuthenticate(initialRequest);
+            return shouldWrite;
+        }
+
         protected Future<?> execute() {
+            if(!shouldWrite) {
+                return channel.newSucceededFuture();
+            }
+
             LOG.debug("Handling CONNECT request through Chained Proxy");
             chainedProxy.filterRequest(initialRequest);
+            issuedRequests.add(initialRequest);
             MitmManager mitmManager = proxyServer.getMitmManager();
             boolean isMitmEnabled = mitmManager != null;
             /*
@@ -711,6 +770,68 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             }
         }
     };
+
+    private ConnectionFlowStep NtlmWithChainedProxy = new ConnectionFlowStep(this, NTLM_HANDSHAKING) {
+
+        private boolean challenged;
+
+        boolean isRelevant(Object msg) {
+            if (msg instanceof HttpResponse) {
+                HttpResponse httpResponse = (HttpResponse) msg;
+                challenged = isNtlmChallenge(httpResponse);
+            }
+            return challenged;
+        };
+
+        protected Future<?> execute() {
+            HttpRequest request = copyAsFull(initialRequest);
+            chainedProxy.getNtlmHandler().negotiate(request);
+            issuedRequests.add(request);
+            LOG.debug("NTLM negotiate message: {}", request);
+            return writeToChannel(request);
+        }
+
+        void onSuccess(ConnectionFlow flow) {
+            // Do nothing, wait for NTLM Type-2 response
+        }
+
+        void read(ConnectionFlow flow, Object msg) {
+            // Set NTLM Type-2 response
+            if (msg instanceof HttpResponse) {
+                HttpResponse httpResponse = (HttpResponse) msg;
+                try {
+                    chainedProxy.getNtlmHandler().challenge(httpResponse);
+                } catch (Exception e) {
+                    LOG.warn("Failed to handle NTLM challenge message", e);
+                    flow.fail();
+                }
+            }
+
+            if (msg instanceof LastHttpContent) {
+                LOG.debug("Completed reading NTLM challenge message");
+                flow.advance();
+                return;
+            }
+
+            if (msg instanceof HttpContent) {
+                LOG.debug("Ignored NTLM challenge message content");
+            }
+        }
+    };
+
+    private static HttpRequest copyAsFull(HttpRequest origin) {
+        HttpRequest request = null;
+        if (origin instanceof FullHttpRequest) {
+            request = origin;
+            ReferenceCountUtil.retain(request);
+        } else {
+            request = new DefaultFullHttpRequest(origin.getProtocolVersion(), origin.getMethod(), origin.getUri());
+            HttpHeaders.setHost(request, HttpHeaders.getHost(origin));
+        }
+        request.headers().set("Proxy-Connection", "Keep-Alive");
+        request.headers().set("Connection", "Keep-Alive");
+        return request;
+    }
 
     /**
      * <p>
@@ -792,9 +913,7 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         } else {
             LOG.info("Connection to upstream server failed", cause);
         }
-
-        // attempt to connect using a chained proxy, if available
-        chainedProxy = availableChainedProxies.poll();
+        chainedProxy = getProxyToConnect(cause);
         if (chainedProxy != null) {
             LOG.info("Retrying connecting using the next available chained proxy");
 
@@ -821,6 +940,15 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         this.ctx = null;
 
         this.setupConnectionParameters();
+    }
+
+    private ChainedProxy getProxyToConnect(Throwable cause) {
+        // Retry connection to the same proxy
+        if (cause instanceof NtlmException && chainedProxy.getNtlmHandler() != null) {
+            LOG.debug("Retrying connection to {}", chainedProxy.getChainedProxyAddress());
+            return chainedProxy;
+        }
+        return availableChainedProxies.poll();
     }
 
     /**
@@ -871,11 +999,11 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
     /**
      * Initialize our {@link ChannelPipeline} to connect the upstream server.
      * LittleProxy acts as a client here.
-     * 
+     *
      * A {@link ChannelPipeline} invokes the read (Inbound) handlers in
      * ascending ordering of the list and then the write (Outbound) handlers in
      * descending ordering.
-     * 
+     *
      * Regarding the Javadoc of {@link HttpObjectAggregator} it's needed to have
      * the {@link HttpResponseEncoder} or {@link HttpRequestEncoder} before the
      * {@link HttpObjectAggregator} in the {@link ChannelPipeline}.
@@ -940,13 +1068,33 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         }
         clientConnection.serverConnectionSucceeded(this,
                 shouldForwardInitialRequest);
-
         if (shouldForwardInitialRequest) {
-            LOG.debug("Writing initial request: {}", initialRequest);
-            write(initialRequest);
+            boolean shouldWrite = ntlmAuthenticate(initialRequest);
+            if(shouldWrite) {
+                LOG.debug("Writing initial request: {}", initialRequest);
+                write(initialRequest);
+            }
         } else {
             LOG.debug("Dropping initial request: {}", initialRequest);
         }
+    }
+
+   /**
+     * Set authentication details to NTLM proxy if configured.
+     *
+     * @param httpRequest
+     *            The request that may need authentication
+     * @return true if the request needs to be written
+     */
+    private boolean ntlmAuthenticate(HttpRequest httpRequest) {
+        if (chainedProxy != null && chainedProxy.getNtlmHandler() != null) {
+            boolean challenged = chainedProxy.getNtlmHandler().isChallenged();
+            if (challenged) {
+                chainedProxy.getNtlmHandler().authenticate(httpRequest);
+            }
+            return challenged;
+        }
+        return true;
     }
 
     /**
