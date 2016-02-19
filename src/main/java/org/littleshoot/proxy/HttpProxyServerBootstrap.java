@@ -294,11 +294,11 @@ public interface HttpProxyServerBootstrap {
      * @param inetSocketAddress to be used for outgoing communication
      */
     HttpProxyServerBootstrap withNetworkInterface(InetSocketAddress inetSocketAddress);
-    
+
     HttpProxyServerBootstrap withMaxInitialLineLength(int maxInitialLineLength);
-    
+
     HttpProxyServerBootstrap withMaxHeaderSize(int maxHeaderSize);
-    
+
     HttpProxyServerBootstrap withMaxChunkSize(int maxChunkSize);
 
     /**

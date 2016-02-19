@@ -771,11 +771,11 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     /**
      * Initialize the {@link ChannelPipeline} for the client to proxy channel.
      * LittleProxy acts like a server here.
-     * 
+     *
      * A {@link ChannelPipeline} invokes the read (Inbound) handlers in
      * ascending ordering of the list and then the write (Outbound) handlers in
      * descending ordering.
-     * 
+     *
      * Regarding the Javadoc of {@link HttpObjectAggregator} it's needed to have
      * the {@link HttpResponseEncoder} or {@link io.netty.handler.codec.http.HttpRequestEncoder} before the
      * {@link HttpObjectAggregator} in the {@link ChannelPipeline}.
@@ -993,7 +993,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
         byte[] decodedValue = BaseEncoding.base64().decode(value);
 
         String decodedString = new String(decodedValue, Charset.forName("UTF-8"));
-        
+
         String userName = StringUtils.substringBefore(decodedString, ":");
         String password = StringUtils.substringAfter(decodedString, ":");
         if (!authenticator.authenticate(userName, password)) {
