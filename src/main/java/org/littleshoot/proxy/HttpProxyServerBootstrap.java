@@ -294,6 +294,12 @@ public interface HttpProxyServerBootstrap {
      * @param inetSocketAddress to be used for outgoing communication
      */
     HttpProxyServerBootstrap withNetworkInterface(InetSocketAddress inetSocketAddress);
+    
+    public HttpProxyServerBootstrap withMaxInitialLineLength(int maxInitialLineLength);
+    
+    public HttpProxyServerBootstrap withMaxHeaderSize(int maxHeaderSize);
+    
+    public HttpProxyServerBootstrap withMaxChunkSize(int maxChunkSize);
 
     /**
      * Sets the alias to use when adding Via headers to incoming and outgoing HTTP messages. The alias may be any
