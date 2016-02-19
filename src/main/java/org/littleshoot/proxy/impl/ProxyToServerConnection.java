@@ -904,9 +904,9 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
 
         pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
         pipeline.addLast("decoder", new HeadAwareHttpResponseDecoder(
-                8192,
-                8192 * 2,
-                8192 * 2));
+        		proxyServer.getMaxInitialLineLength(),
+                proxyServer.getMaxHeaderSize(),
+                proxyServer.getMaxChunkSize()));
         pipeline.addLast("responseReadMonitor", responseReadMonitor);
 
         // Enable aggregation for filtering if necessary
