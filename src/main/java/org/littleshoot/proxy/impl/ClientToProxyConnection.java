@@ -646,6 +646,11 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                 proxyServer.getMaxChunkSize()));
         pipeline.addLast("requestReadMonitor", requestReadMonitor);
 
+        //Per documentation of HttpObjectAggregator - HttpResponseEncoder or HttpRequestEncoder
+        // should be placed before the HttpObjectAggregator in the ChannelPipeline.
+        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+        pipeline.addLast("encoder", new HttpResponseEncoder());
+
         // Enable aggregation for filtering if necessary
         int numberOfBytesToBuffer = proxyServer.getFiltersSource()
                 .getMaximumRequestBufferSizeInBytes();
@@ -653,8 +658,6 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
-        pipeline.addLast("encoder", new HttpResponseEncoder());
         pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
 
         pipeline.addLast(
