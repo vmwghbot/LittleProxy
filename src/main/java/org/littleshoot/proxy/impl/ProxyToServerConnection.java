@@ -826,6 +826,9 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             ReferenceCountUtil.retain(request);
         } else {
             request = new DefaultFullHttpRequest(origin.getProtocolVersion(), origin.getMethod(), origin.getUri());
+            if(origin.headers() != null){
+                request.headers().add(origin.headers());
+            }
             HttpHeaders.setHost(request, HttpHeaders.getHost(origin));
         }
         request.headers().set("Proxy-Connection", "Keep-Alive");
