@@ -35,7 +35,6 @@ import org.littleshoot.proxy.SslEngineSource;
 
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;

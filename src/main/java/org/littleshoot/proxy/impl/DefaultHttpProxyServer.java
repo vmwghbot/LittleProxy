@@ -76,9 +76,6 @@ public class DefaultHttpProxyServer implements HttpProxyServer {
      */
     private static final long TRAFFIC_SHAPING_CHECK_INTERVAL_MS = 250L;
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(DefaultHttpProxyServer.class);
-
     private static final int MAX_INITIAL_LINE_LENGTH_DEFAULT = 8192;
     private static final int MAX_HEADER_SIZE_DEFAULT = 8192*2;
     private static final int MAX_CHUNK_SIZE_DEFAULT = 8192*2;
@@ -646,7 +643,6 @@ public class DefaultHttpProxyServer implements HttpProxyServer {
                 int maxHeaderSize,
                 int maxChunkSize) {
             this.serverGroup = serverGroup;
-            this.original = original;
             this.transportProtocol = transportProtocol;
             this.requestedAddress = requestedAddress;
             this.port = requestedAddress.getPort();
