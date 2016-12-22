@@ -1027,7 +1027,6 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         		proxyServer.getMaxInitialLineLength(),
                 proxyServer.getMaxHeaderSize(),
                 proxyServer.getMaxChunkSize()));
-        pipeline.addLast("responseReadMonitor", responseReadMonitor);
 
         // Enable aggregation for filtering if necessary
         int numberOfBytesToBuffer = proxyServer.getFiltersSource()

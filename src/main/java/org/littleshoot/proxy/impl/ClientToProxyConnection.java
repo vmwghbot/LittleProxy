@@ -211,12 +211,12 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private ConnectionState doReadHTTPInitial(HttpRequest httpRequest) {
         // Make a copy of the original request
-        HttpRequest originalRequest = copy(httpRequest);
-        if(originalRequest instanceof FullHttpRequest) {
-            originalRequest.headers().set(httpRequest.headers());
+        this.currentRequest = copy(httpRequest);
+        if(this.currentRequest instanceof FullHttpRequest) {
+            this.currentRequest.headers().set(httpRequest.headers());
         }
 
-        LOG.debug("Got request: {}", originalRequest);
+        LOG.debug("Got request: {}", this.currentRequest);
 
         // Set up our filters based on the original request. If the HttpFiltersSource returns null (meaning the request/response
         // should not be filtered), fall back to the default no-op filter source.
