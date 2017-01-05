@@ -46,6 +46,7 @@ import org.littleshoot.proxy.TransportProtocol;
 import org.littleshoot.proxy.UnknownTransportProtocolException;
 import org.littleshoot.proxy.ntlm.NtlmException;
 
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
@@ -602,8 +603,10 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
                 .then(ConnectChannel);
 
         if (chainedProxy != null && chainedProxy.requiresEncryption()) {
-            connectionFlow.then(serverConnection.EncryptChannel(chainedProxy
-                    .newSslEngine()));
+            InetSocketAddress proxyAddress = chainedProxy.getChainedProxyAddress();
+            SSLEngine engine = chainedProxy.newSslEngine(proxyAddress.getHostName(), proxyAddress.getPort());
+            engine = engine == null ? chainedProxy.newSslEngine() : engine;
+            connectionFlow.then(serverConnection.EncryptChannel(engine));
         }
 
         if (chainedProxy != null && chainedProxy.getNtlmHandler() != null) {

@@ -1282,7 +1282,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
         // if the response is not a Bad Gateway or Gateway Timeout, modify the headers "as if" the short-circuit response were proxied
         int statusCode = httpResponse.getStatus().code();
-        if (statusCode != HttpResponseStatus.BAD_GATEWAY.code() && statusCode != HttpResponseStatus.GATEWAY_TIMEOUT.code()) {
+        if (statusCode != HttpResponseStatus.BAD_GATEWAY.code() && statusCode != HttpResponseStatus.GATEWAY_TIMEOUT.code()
+                && statusCode != HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED.code()) {
             modifyResponseHeadersToReflectProxying(httpResponse);
         }
 
