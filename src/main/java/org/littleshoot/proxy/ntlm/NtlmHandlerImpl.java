@@ -1,14 +1,14 @@
 package org.littleshoot.proxy.ntlm;
 
-import static com.google.common.base.Preconditions.checkState;
-import static io.netty.handler.codec.http.HttpHeaders.isKeepAlive;
-import static io.netty.handler.codec.http.HttpHeaders.Names.PROXY_AUTHENTICATE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.PROXY_AUTHORIZATION;
-import static org.apache.commons.codec.binary.Base64.decodeBase64;
-import static org.apache.commons.codec.binary.Base64.encodeBase64String;
-import static org.apache.commons.lang3.StringUtils.substringAfter;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
+
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.io.BaseEncoding.base64;
+import static io.netty.handler.codec.http.HttpHeaders.Names.PROXY_AUTHENTICATE;
+import static io.netty.handler.codec.http.HttpHeaders.Names.PROXY_AUTHORIZATION;
+import static io.netty.handler.codec.http.HttpHeaders.isKeepAlive;
+import static org.apache.commons.lang3.StringUtils.substringAfter;
 
 /**
  * This class is responsible for writing and reading NTLM related request and
@@ -58,7 +58,7 @@ public class NtlmHandlerImpl implements NtlmHandler {
 	private void readChallenge(HttpResponse httpResponse) {
 		String proxyAuth = httpResponse.headers().get(PROXY_AUTHENTICATE);
 		String authChallenge = substringAfter(proxyAuth, "NTLM ");
-		challenged = provider.setType2(decodeBase64(authChallenge));
+		challenged = provider.setType2(base64().decode(authChallenge));
 	}
 
 	private void writeAuthentication(HttpRequest httpRequest) {
@@ -79,7 +79,7 @@ public class NtlmHandlerImpl implements NtlmHandler {
 	}
 
 	private static void setAuthHeader(HttpRequest httpRequest, byte[] msg) {
-		httpRequest.headers().set(PROXY_AUTHORIZATION, "NTLM " + encodeBase64String(msg));
+		httpRequest.headers().set(PROXY_AUTHORIZATION, "NTLM " + base64().encode(msg));
 	}
 
 }
