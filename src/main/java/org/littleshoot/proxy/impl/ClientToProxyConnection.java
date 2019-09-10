@@ -1276,6 +1276,9 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private boolean respondWithShortCircuitResponse(HttpResponse httpResponse) {
         // we are sending a response to the client, so we are done handling this request
+        if (currentRequest != null && currentRequest instanceof ReferenceCounted) {
+            ((ReferenceCounted)currentRequest).release();
+        }
         this.currentRequest = null;
 
         HttpResponse filteredResponse = (HttpResponse) currentFilters.proxyToClientResponse(httpResponse);
