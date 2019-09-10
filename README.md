@@ -1,5 +1,9 @@
 [![Build Status](https://travis-ci.org/adamfisk/LittleProxy.png?branch=master)](https://travis-ci.org/adamfisk/LittleProxy)
 
+**This branch is used by MAG proxy which the following custom changes:
+- NTLM support 
+- Memory Leak Fix**
+
 LittleProxy is a high performance HTTP proxy written in Java atop Trustin Lee's excellent [Netty](http://netty.io) event-based networking library. It's quite stable, performs well, and is easy to integrate into your projects. 
 
 One option is to clone LittleProxy and run it from the command line. This is as simple as:
