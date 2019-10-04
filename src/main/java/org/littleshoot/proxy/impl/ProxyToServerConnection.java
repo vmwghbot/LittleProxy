@@ -383,6 +383,10 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             // already disconnected
             if (isConnecting() || getCurrentState().isDisconnectingOrDisconnected()) {
                 LOG.debug("Connection failed or timed out while waiting to write message to server. Message will be discarded: {}", msg);
+                // release when disconnected.
+                if (initialRequest instanceof ReferenceCounted) {
+                    ((ReferenceCounted)initialRequest).release();
+                }
                 return;
             }
 
@@ -397,9 +401,8 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             chainedProxy.filterRequest(httpObject);
         }
         if (httpObject instanceof HttpRequest) {
-            HttpRequest httpRequest = (HttpRequest) httpObject;
             // Remember that we issued this HttpRequest for later
-            currentHttpRequest = httpRequest;
+            currentHttpRequest = (HttpRequest) httpObject;
         }
         super.writeHttp(httpObject);
     }

@@ -1,5 +1,6 @@
 package org.littleshoot.proxy.impl;
 
+import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 
@@ -177,11 +178,20 @@ class ConnectionFlow {
      */
     void succeed() {
         synchronized (connectLock) {
-            serverConnection.getLOG().debug(
-                    "Connection flow completed successfully: {}", currentStep);
-            serverConnection.connectionSucceeded(!suppressInitialRequest);
-            notifyThreadsWaitingForConnection();
-        }
+            try {
+                serverConnection.getLOG().debug(
+                        "Connection flow completed successfully: {}", currentStep);
+                serverConnection.connectionSucceeded(!suppressInitialRequest);
+                notifyThreadsWaitingForConnection();
+            } finally {
+                // we're now done with the initialRequest: it's either been forwarded to the upstream server (HTTP requests), or
+                // completely dropped (HTTPS CONNECTs). if the initialRequest is reference counted (typically because the HttpObjectAggregator is in
+                // the pipeline to generate FullHttpRequests), we need to manually release it to avoid a memory leak.
+                if (serverConnection.getInitialRequest() instanceof ReferenceCounted) {
+                    ((ReferenceCounted)serverConnection.getInitialRequest()).release();
+                }
+            }
+        }   
     }
 
     /**
@@ -199,16 +209,28 @@ class ConnectionFlow {
                     public void operationComplete(Future future)
                             throws Exception {
                         synchronized (connectLock) {
-                            if (!clientConnection.serverConnectionFailed(
-                                    serverConnection,
-                                    lastStateBeforeFailure,
-                                    cause)) {
-                                // the connection to the server failed and we are not retrying, so transition to the
-                                // DISCONNECTED state
-                                serverConnection.become(ConnectionState.DISCONNECTED);
 
-                                // We are not retrying our connection, let anyone waiting for a connection know that we're done
-                                notifyThreadsWaitingForConnection();
+                            boolean fallbackToAnotherChainedProxy = false;
+
+                            try {
+                                fallbackToAnotherChainedProxy = clientConnection.serverConnectionFailed(
+                                        serverConnection,
+                                        lastStateBeforeFailure,
+                                        cause);
+                            } finally {
+                                // Do not release when there is fallback chained proxy
+                                if (!fallbackToAnotherChainedProxy) {
+                                    if (serverConnection.getInitialRequest() instanceof ReferenceCounted) {
+                                        ((ReferenceCounted)serverConnection.getInitialRequest()).release();
+                                    }
+
+                                    // the connection to the server failed and we are not retrying, so transition to the
+                                    // DISCONNECTED state
+                                    serverConnection.become(ConnectionState.DISCONNECTED);
+
+                                    // We are not retrying our connection, let anyone waiting for a connection know that we're done
+                                    notifyThreadsWaitingForConnection();
+                                }
                             }
                         }
                     }
