@@ -788,8 +788,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     private void initChannelPipeline(ChannelPipeline pipeline) {
         LOG.debug("Configuring ChannelPipeline");
 
-        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
-        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+//        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
+//        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
 
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // We want to allow longer request lines, headers, and chunks
@@ -806,8 +806,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-        pipeline.addLast("requestReadMonitor", requestReadMonitor);
-        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
+//        pipeline.addLast("requestReadMonitor", requestReadMonitor);
+//        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
 
         pipeline.addLast(
                 "idle",
@@ -1367,7 +1367,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * We track statistics on bytes, requests and responses by adding handlers
      * at the appropriate parts of the pipeline (see initChannelPipeline()).
      **************************************************************************/
-    private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
+    /*private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
         @Override
         protected void bytesRead(int numberOfBytes) {
             FlowContext flowContext = flowContext();
@@ -1410,7 +1410,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                         httpResponse);
             }
         }
-    };
+    };*/
 
     private void recordClientConnected() {
         try {
