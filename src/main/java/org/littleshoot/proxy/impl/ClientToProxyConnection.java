@@ -21,6 +21,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.commons.lang3.StringUtils;
@@ -434,6 +436,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             HttpRequest currentHttpRequest, HttpResponse currentHttpResponse,
             HttpObject httpObject) {
         // we are sending a response to the client, so we are done handling this request
+        ReferenceCountUtil.release(currentRequest);
         this.currentRequest = null;
 
         httpObject = filters.serverToProxyResponse(httpObject);
@@ -784,8 +787,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     private void initChannelPipeline(ChannelPipeline pipeline) {
         LOG.debug("Configuring ChannelPipeline");
 
-        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
-        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+//        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
+//        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
 
         pipeline.addLast("encoder", new HttpResponseEncoder());
         // We want to allow longer request lines, headers, and chunks
@@ -802,8 +805,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-        pipeline.addLast("requestReadMonitor", requestReadMonitor);
-        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
+//        pipeline.addLast("requestReadMonitor", requestReadMonitor);
+//        pipeline.addLast("responseWrittenMonitor", responseWrittenMonitor);
 
         pipeline.addLast(
                 "idle",
@@ -871,7 +874,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             }
         }
 
-        if (!HttpHeaders.isKeepAlive(req)) {
+        if (req != null && !HttpHeaders.isKeepAlive(req)) {
             LOG.debug("Closing client connection since request is not keep alive: {}", req);
             // Here we simply want to close the connection because the
             // client itself has requested it be closed in the request.
@@ -1272,6 +1275,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private boolean respondWithShortCircuitResponse(HttpResponse httpResponse) {
         // we are sending a response to the client, so we are done handling this request
+        ReferenceCountUtil.release(currentRequest);
         this.currentRequest = null;
 
         HttpResponse filteredResponse = (HttpResponse) currentFilters.proxyToClientResponse(httpResponse);
@@ -1360,7 +1364,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * We track statistics on bytes, requests and responses by adding handlers
      * at the appropriate parts of the pipeline (see initChannelPipeline()).
      **************************************************************************/
-    private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
+    /*private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
         @Override
         protected void bytesRead(int numberOfBytes) {
             FlowContext flowContext = flowContext();
@@ -1403,7 +1407,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                         httpResponse);
             }
         }
-    };
+    };*/
 
     private void recordClientConnected() {
         try {

@@ -354,7 +354,9 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
 
     @Override
     void write(Object msg) {
-        LOG.debug("Requested write of {}", msg);
+        //TODO: Need to revert them to DEBUG 
+        LOG.info("Requested write of {}", msg);
+        LOG.info("Message Instance Type - {}", msg.getClass());
 
         if (msg instanceof ReferenceCounted) {
             LOG.debug("Retaining reference counted message");
@@ -383,6 +385,10 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             // already disconnected
             if (isConnecting() || getCurrentState().isDisconnectingOrDisconnected()) {
                 LOG.debug("Connection failed or timed out while waiting to write message to server. Message will be discarded: {}", msg);
+                // release when disconnected.
+                if (initialRequest instanceof ReferenceCounted) {
+                    ((ReferenceCounted)initialRequest).release();
+                }
                 return;
             }
 
@@ -397,9 +403,8 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             chainedProxy.filterRequest(httpObject);
         }
         if (httpObject instanceof HttpRequest) {
-            HttpRequest httpRequest = (HttpRequest) httpObject;
             // Remember that we issued this HttpRequest for later
-            currentHttpRequest = httpRequest;
+            currentHttpRequest = (HttpRequest) httpObject;
         }
         super.writeHttp(httpObject);
     }
@@ -1005,8 +1010,8 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             pipeline.addLast("global-traffic-shaping", trafficHandler);
         }
 
-        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
-        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
+//        pipeline.addLast("bytesReadMonitor", bytesReadMonitor);
+//        pipeline.addLast("bytesWrittenMonitor", bytesWrittenMonitor);
 
         pipeline.addLast("encoder", new HttpRequestEncoder());
         pipeline.addLast("decoder", new HeadAwareHttpResponseDecoder(
@@ -1021,8 +1026,8 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-        pipeline.addLast("responseReadMonitor", responseReadMonitor);
-        pipeline.addLast("requestWrittenMonitor", requestWrittenMonitor);
+//        pipeline.addLast("responseReadMonitor", responseReadMonitor);
+//        pipeline.addLast("requestWrittenMonitor", requestWrittenMonitor);
 
         // Set idle timeout
         pipeline.addLast(
@@ -1123,7 +1128,7 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
      * We track statistics on bytes, requests and responses by adding handlers
      * at the appropriate parts of the pipeline (see initChannelPipeline()).
      **************************************************************************/
-    private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
+    /*private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
         @Override
         protected void bytesRead(int numberOfBytes) {
             FullFlowContext flowContext = new FullFlowContext(clientConnection,
@@ -1186,6 +1191,6 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
                 currentFilters.proxyToServerRequestSent();
             }
         }
-    };
+    };*/
 
 }

@@ -3,7 +3,7 @@
     <groupId>org.littleshoot</groupId>
     <artifactId>littleproxy</artifactId>
     <packaging>jar</packaging>
-    <version>1.1.2-ntlm-20180920</version>
+    <version>1.1.2-ntlm-20190910</version>
     <name>LittleProxy</name>
     <description>
         LittleProxy is a high performance HTTP proxy written in Java and using the Netty networking framework.
@@ -14,9 +14,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <github.global.server>github</github.global.server>
-        <netty.version>4.0.44.Final</netty.version>
+        <netty.version>4.1.42.Final</netty.version>
         <slf4j.version>1.7.24</slf4j.version>
-        <java.version>1.7</java.version>
+        <java.version>1.8</java.version>
     </properties>
 
     <organization>
