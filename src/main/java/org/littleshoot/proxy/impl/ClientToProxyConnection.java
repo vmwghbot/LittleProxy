@@ -21,6 +21,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -435,9 +436,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             HttpRequest currentHttpRequest, HttpResponse currentHttpResponse,
             HttpObject httpObject) {
         // we are sending a response to the client, so we are done handling this request
-        if (currentRequest != null && currentRequest instanceof ReferenceCounted) {
-            ((ReferenceCounted)currentRequest).release();
-        }
+        ReferenceCountUtil.release(currentRequest);
         this.currentRequest = null;
 
         httpObject = filters.serverToProxyResponse(httpObject);
@@ -1276,9 +1275,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      */
     private boolean respondWithShortCircuitResponse(HttpResponse httpResponse) {
         // we are sending a response to the client, so we are done handling this request
-        if (currentRequest != null && currentRequest instanceof ReferenceCounted) {
-            ((ReferenceCounted)currentRequest).release();
-        }
+        ReferenceCountUtil.release(currentRequest);
         this.currentRequest = null;
 
         HttpResponse filteredResponse = (HttpResponse) currentFilters.proxyToClientResponse(httpResponse);
