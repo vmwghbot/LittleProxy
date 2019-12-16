@@ -3,7 +3,7 @@
     <groupId>org.littleshoot</groupId>
     <artifactId>littleproxy</artifactId>
     <packaging>jar</packaging>
-    <version>1.1.17-VGS-SNAPSHOT</version>
+    <version>1.1.2-ntlm-20191216</version>
     <name>LittleProxy</name>
     <description>
         LittleProxy is a high performance HTTP proxy written in Java and using the Netty networking framework.
@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <github.global.server>github</github.global.server>
-        <netty.version>4.1.28.Final</netty.version>
+        <netty.version>4.1.43.Final</netty.version>
         <slf4j.version>1.7.24</slf4j.version>
         <java.version>1.8</java.version>
         <java.version.major>8</java.version.major>
@@ -330,6 +330,18 @@
         </dependency>
 
         <dependency>
+            <groupId>jcifs</groupId>
+            <artifactId>jcifs</artifactId>
+            <version>1.3.17</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>servlet-api</artifactId>
+                    <groupId>javax.servlet</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
             <groupId>com.barchart.udt</groupId>
             <artifactId>barchart-udt-bundle</artifactId>
             <version>2.3.0</version>
@@ -532,6 +544,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
+                    <skipTests>true</skipTests>
                     <argLine>-Xmx1g -XX:MaxPermSize=256m</argLine>
                 </configuration>
             </plugin>
@@ -545,6 +558,19 @@
                     <target>${java.version.major}</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
