@@ -1047,8 +1047,14 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
 
         final EventExecutorGroup globalStateWrapperEvenLoop = new GlobalStateWrapperEvenLoop(clientConnection, channel.eventLoop());
 
-//        pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
-//        pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()) {
+            LOG.info("Activity Trackers are available: {}. Enabled monitoring.", proxyServer.getActivityTrackers().size());
+            for (final ActivityTracker activityTracker : proxyServer.getActivityTrackers()) {
+                LOG.debug("Activity Tracker: {}", activityTracker.getClass());
+            }
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        }
 
         pipeline.addLast("encoder", new HttpRequestEncoder());
         pipeline.addLast("decoder", new HeadAwareHttpResponseDecoder(
@@ -1062,9 +1068,10 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
         if (numberOfBytesToBuffer > 0) {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
-
-//        pipeline.addLast(globalStateWrapperEvenLoop, "responseReadMonitor", responseReadMonitor);
-//        pipeline.addLast(globalStateWrapperEvenLoop, "requestWrittenMonitor", requestWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()) {
+            pipeline.addLast(globalStateWrapperEvenLoop, "requestWrittenMonitor", requestWrittenMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "responseReadMonitor", responseReadMonitor);
+        }
 
         // Set idle timeout
         pipeline.addLast(
@@ -1165,7 +1172,7 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
      * We track statistics on bytes, requests and responses by adding handlers
      * at the appropriate parts of the pipeline (see initChannelPipeline()).
      **************************************************************************/
-   /* private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
+    private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
         @Override
         protected void bytesRead(int numberOfBytes) {
             FullFlowContext flowContext = new FullFlowContext(clientConnection,
@@ -1228,5 +1235,5 @@ public class ProxyToServerConnection extends ProxyConnection<HttpResponse> {
                 currentFilters.proxyToServerRequestSent();
             }
         }
-    };*/
+    };
 }

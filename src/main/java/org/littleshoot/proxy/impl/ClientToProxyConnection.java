@@ -860,9 +860,9 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     private void initChannelPipeline(ChannelPipeline pipeline) {
         LOG.debug("Configuring ChannelPipeline");
 
-//        if (proxyServer.getRequestTracer() != null) {
-//            pipeline.addLast("requestTracerHandler", new RequestTracerHandler(this));
-//        }
+        if (!proxyServer.getActivityTrackers().isEmpty() && proxyServer.getRequestTracer() != null) {
+            pipeline.addLast("requestTracerHandler", new RequestTracerHandler(this));
+        }
 
         if (proxyServer.getGlobalStateHandler() != null) {
             pipeline.addLast("inboundGlobalStateHandler", new InboundGlobalStateHandler(this));
@@ -870,8 +870,14 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
         EventExecutorGroup globalStateWrapperEvenLoop = new GlobalStateWrapperEvenLoop(this);
 
-//        pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
-//        pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()){
+            LOG.info("Activity Trackers are available: {}. Enabled monitoring.", proxyServer.getActivityTrackers().size());
+            for (final ActivityTracker activityTracker : proxyServer.getActivityTrackers()) {
+                LOG.debug("Activity Tracker: {}", activityTracker.getClass());
+            }
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        }
 
         pipeline.addLast("proxyProtocolReader", new HttpProxyProtocolRequestDecoder());
 
@@ -890,8 +896,10 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-//        pipeline.addLast(globalStateWrapperEvenLoop, "requestReadMonitor", requestReadMonitor);
-//        pipeline.addLast(globalStateWrapperEvenLoop, "responseWrittenMonitor", responseWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()){
+            pipeline.addLast(globalStateWrapperEvenLoop, "requestReadMonitor", requestReadMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "responseWrittenMonitor", responseWrittenMonitor);
+        }
 
         pipeline.addLast(
                 "idle",
@@ -1423,7 +1431,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
      * We track statistics on bytes, requests and responses by adding handlers
      * at the appropriate parts of the pipeline (see initChannelPipeline()).
      **************************************************************************/
-    /*private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
+    private final BytesReadMonitor bytesReadMonitor = new BytesReadMonitor() {
         @Override
         protected void bytesRead(int numberOfBytes) {
             FlowContext flowContext = flowContext();
@@ -1466,7 +1474,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
                         httpResponse);
             }
         }
-    };*/
+    };
 
     private void recordClientConnected() {
         try {
