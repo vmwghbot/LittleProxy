@@ -20,6 +20,8 @@ import org.mockserver.integration.ClientAndServer;
 import org.mockserver.matchers.Times;
 
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -94,6 +96,7 @@ public class HttpFilterTest {
         this.proxyServer = DefaultHttpProxyServer.bootstrap()
                 .withPort(0)
                 .withFiltersSource(filtersSource)
+                .plusActivityTracker(getDummyActivityTracker())
                 .start();
 
         final InetSocketAddress isa = new InetSocketAddress("127.0.0.1", proxyServer.getListenAddress().getPort());
@@ -695,6 +698,7 @@ public class HttpFilterTest {
                 .withPort(0)
                 .withFiltersSource(filtersSource)
                 .withIdleConnectionTimeout(3)
+                .plusActivityTracker(getDummyActivityTracker())
                 .start();
 
         org.apache.http.HttpResponse httpResponse = HttpClientUtil.performHttpGet("http://localhost:" + mockServerPort + "/servertimeout", proxyServer);
@@ -725,7 +729,7 @@ public class HttpFilterTest {
         assertFalse("Expected filter method to not be called", filter.isProxyToServerConnectionFailedInvoked());
         assertFalse("Expected filter method to not be called", filter.isProxyToServerConnectionSSLHandshakeStartedInvoked());
     }
-
+    
     @Test
     public void testRequestSentInvokedAfterLastHttpContentSent() throws Exception {
         final AtomicBoolean lastHttpContentProcessed = new AtomicBoolean(false);
@@ -991,5 +995,64 @@ public class HttpFilterTest {
         public void proxyToServerConnectionSSLHandshakeStarted() {
             proxyToServerConnectionSSLHandshakeStarted.set(true);
         }
+    }
+
+    private ActivityTracker getDummyActivityTracker() {
+        return new ActivityTracker() {
+            @Override
+            public void clientConnected(final InetSocketAddress clientAddress) {
+
+            }
+
+            @Override
+            public void clientSSLHandshakeSucceeded(final InetSocketAddress clientAddress, final SSLSession sslSession) {
+
+            }
+
+            @Override
+            public void clientDisconnected(final InetSocketAddress clientAddress, final SSLSession sslSession) {
+
+            }
+
+            @Override
+            public void bytesReceivedFromClient(final FlowContext flowContext, final int numberOfBytes) {
+
+            }
+
+            @Override
+            public void requestReceivedFromClient(final FlowContext flowContext, final HttpRequest httpRequest) {
+
+            }
+
+            @Override
+            public void bytesSentToServer(final FullFlowContext flowContext, final int numberOfBytes) {
+
+            }
+
+            @Override
+            public void requestSentToServer(final FullFlowContext flowContext, final HttpRequest httpRequest) {
+
+            }
+
+            @Override
+            public void bytesReceivedFromServer(final FullFlowContext flowContext, final int numberOfBytes) {
+
+            }
+
+            @Override
+            public void responseReceivedFromServer(final FullFlowContext flowContext, final HttpResponse httpResponse) {
+
+            }
+
+            @Override
+            public void bytesSentToClient(final FlowContext flowContext, final int numberOfBytes) {
+
+            }
+
+            @Override
+            public void responseSentToClient(final FlowContext flowContext, final HttpResponse httpResponse) {
+
+            }
+        };
     }
 }
