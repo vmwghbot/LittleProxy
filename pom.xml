@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <github.global.server>github</github.global.server>
-        <netty.version>4.1.43.Final</netty.version>
+        <netty.version>4.1.54.Fina</netty.version>
         <slf4j.version>1.7.24</slf4j.version>
         <java.version>1.8</java.version>
         <java.version.major>8</java.version.major>
@@ -225,7 +225,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>23.0</version>
+            <version>30.0-jre</version>
         </dependency>
 
         <dependency>
@@ -273,7 +273,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>8.1.17.v20150415</version>
+            <version>9.4.34.v20201102</version>
             <scope>test</scope>
         </dependency>
 
