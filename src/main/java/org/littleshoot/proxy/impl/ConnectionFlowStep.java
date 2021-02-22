@@ -84,6 +84,17 @@ abstract class ConnectionFlowStep {
     }
 
     /**
+     * Indicates whether the given message is relevant to this step.
+     *
+     * @param msg
+     *            the message read from the underlying connection
+     * @return
+     */
+    boolean isRelevant(Object msg) {
+        return true;
+    }
+
+    /**
      * <p>
      * Any messages that are read from the underlying connection while we're at
      * this step of the connection flow are passed to this method.

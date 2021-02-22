@@ -887,21 +887,20 @@ abstract class ProxyConnection<I extends HttpObject> extends
         }
 
         /**
-         * Invoked immediately before an HttpRequest is written.
-         */
+     * Invoked immediately before an HttpRequest is written.
+     */
         protected abstract void requestWriting(HttpRequest httpRequest);
 
         /**
-         * Invoked immediately after an HttpRequest has been sent.
-         */
+     * Invoked immediately after an HttpRequest has been sent.
+     */
         protected abstract void requestWritten(HttpRequest httpRequest);
 
         /**
-         * Invoked immediately after an HttpContent has been sent.
-         */
+     * Invoked immediately after an HttpContent has been sent.
+     */
         protected abstract void contentWritten(HttpContent httpContent);
     }
-
     /**
      * Utility handler for monitoring responses written on this connection.
      */
@@ -926,4 +925,7 @@ abstract class ProxyConnection<I extends HttpObject> extends
         protected abstract void responseWritten(HttpResponse httpResponse);
     }
 
+    public ChannelHandlerContext getContext() {
+        return ctx;
+    }
 }

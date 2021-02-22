@@ -3,6 +3,8 @@ package org.littleshoot.proxy;
 import org.littleshoot.proxy.impl.ClientToProxyConnection;
 import org.littleshoot.proxy.impl.ProxyToServerConnection;
 
+import io.netty.channel.ChannelHandlerContext;
+
 /**
  * Extension of {@link FlowContext} that provides additional information (which
  * we know after actually processing the request from the client).
@@ -10,12 +12,23 @@ import org.littleshoot.proxy.impl.ProxyToServerConnection;
 public class FullFlowContext extends FlowContext {
     private final String serverHostAndPort;
     private final ChainedProxy chainedProxy;
+    private final ChannelHandlerContext ctx;
 
     public FullFlowContext(ClientToProxyConnection clientConnection,
             ProxyToServerConnection serverConnection) {
         super(clientConnection);
+        this.ctx = serverConnection.getContext();
         this.serverHostAndPort = serverConnection.getServerHostAndPort();
         this.chainedProxy = serverConnection.getChainedProxy();
+    }
+
+    /**
+     * The proxy to server channel context.
+     *
+     * @return
+     */
+    public ChannelHandlerContext getProxyToServerContext() {
+        return ctx;
     }
 
     /**

@@ -860,7 +860,7 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
     private void initChannelPipeline(ChannelPipeline pipeline) {
         LOG.debug("Configuring ChannelPipeline");
 
-        if (proxyServer.getRequestTracer() != null) {
+        if (!proxyServer.getActivityTrackers().isEmpty() && proxyServer.getRequestTracer() != null) {
             pipeline.addLast("requestTracerHandler", new RequestTracerHandler(this));
         }
 
@@ -870,8 +870,14 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
         EventExecutorGroup globalStateWrapperEvenLoop = new GlobalStateWrapperEvenLoop(this);
 
-        pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
-        pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()){
+            LOG.info("Activity Trackers are available: {}. Enabled monitoring.", proxyServer.getActivityTrackers().size());
+            for (final ActivityTracker activityTracker : proxyServer.getActivityTrackers()) {
+                LOG.debug("Activity Tracker: {}", activityTracker.getClass());
+            }
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesReadMonitor", bytesReadMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "bytesWrittenMonitor", bytesWrittenMonitor);
+        }
 
         pipeline.addLast("proxyProtocolReader", new HttpProxyProtocolRequestDecoder());
 
@@ -890,8 +896,10 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
             aggregateContentForFiltering(pipeline, numberOfBytesToBuffer);
         }
 
-        pipeline.addLast(globalStateWrapperEvenLoop, "requestReadMonitor", requestReadMonitor);
-        pipeline.addLast(globalStateWrapperEvenLoop, "responseWrittenMonitor", responseWrittenMonitor);
+        if(!proxyServer.getActivityTrackers().isEmpty()){
+            pipeline.addLast(globalStateWrapperEvenLoop, "requestReadMonitor", requestReadMonitor);
+            pipeline.addLast(globalStateWrapperEvenLoop, "responseWrittenMonitor", responseWrittenMonitor);
+        }
 
         pipeline.addLast(
                 "idle",
@@ -1349,7 +1357,8 @@ public class ClientToProxyConnection extends ProxyConnection<HttpRequest> {
 
         // if the response is not a Bad Gateway or Gateway Timeout, modify the headers "as if" the short-circuit response were proxied
         int statusCode = httpResponse.getStatus().code();
-        if (statusCode != HttpResponseStatus.BAD_GATEWAY.code() && statusCode != HttpResponseStatus.GATEWAY_TIMEOUT.code()) {
+        if (statusCode != HttpResponseStatus.BAD_GATEWAY.code() && statusCode != HttpResponseStatus.GATEWAY_TIMEOUT.code()
+                && statusCode != HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED.code()) {
             modifyResponseHeadersToReflectProxying(httpResponse);
         }
 
