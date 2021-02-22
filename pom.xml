@@ -14,8 +14,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <github.global.server>github</github.global.server>
-        <netty.version>4.1.54.Fina</netty.version>
-        <slf4j.version>1.7.24</slf4j.version>
+        <netty.version>4.1.59.Final</netty.version>
+        <slf4j.version>1.7.30</slf4j.version>
         <java.version>1.8</java.version>
         <java.version.major>8</java.version.major>
         <dataprovider.version>1.10.0</dataprovider.version>
@@ -245,7 +245,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -273,7 +273,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.4.34.v20201102</version>
+            <version>9.4.35.v20201120</version>
             <scope>test</scope>
         </dependency>
 
@@ -313,7 +313,7 @@
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
+            <version>1.2.27</version>
             <optional>true</optional>
         </dependency>
 
