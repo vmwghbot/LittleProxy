@@ -14,8 +14,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <github.global.server>github</github.global.server>
-        <netty.version>4.1.54.Fina</netty.version>
-        <slf4j.version>1.7.24</slf4j.version>
+        <netty.version>4.1.73.Fina</netty.version>
+        <slf4j.version>1.7.35</slf4j.version>
         <java.version>1.8</java.version>
         <java.version.major>8</java.version.major>
         <dataprovider.version>1.10.0</dataprovider.version>
@@ -273,7 +273,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.4.34.v20201102</version>
+            <version>11.0.7</version>
             <scope>test</scope>
         </dependency>
 
@@ -320,7 +320,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.3</version>
+            <version>4.5.13</version>
             <scope>test</scope>
         </dependency>
 
